@@ -46,7 +46,7 @@ import userRouter from "./routes/userRoute.js";
 import taskRouter from "./routes/taskRoute.js";
 
 const app = express();
-const port = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors());

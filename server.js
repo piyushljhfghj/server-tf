@@ -37,21 +37,33 @@
 
 
 // backend/server.js
+// backend/server.js
 import express from "express";
 import cors from "cors";
-import 'dotenv/config'
+import 'dotenv/config';
 import { connectDB } from "./config/db.js";
 import googleAuthRouter from "./routes/googleAuth.js";
-
-
 import userRouter from "./routes/userRoute.js";
 import taskRouter from "./routes/taskRoute.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
 
+// ✅ Allowed Origins for CORS
+const allowedOrigins = [
+  "http://localhost:5173",                  // Local frontend
+  "https://taskflow-frontend-nine.vercel.app" // Vercel frontend
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true // allows sending cookies/auth headers
+}));
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -61,9 +73,9 @@ connectDB();
 // Routes
 app.use("/api/user", userRouter);
 app.use("/api/tasks", taskRouter);
-// New Google auth
 app.use("/api/auth/google", googleAuthRouter);
 
+// Test API
 app.get("/", (req, res) => {
   res.send("✅ API is Working");
 });

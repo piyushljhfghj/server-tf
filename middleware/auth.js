@@ -34,41 +34,30 @@
 // }
 
 // backend/middleware/auth.js
-import admin from "../firebaseAdmin.js";
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
 
 export default async function authMiddleware(req, res, next) {
   try {
-    const idToken = req.body.token || req.headers.authorization?.split(" ")[1];
-    if (!idToken) {
+    // 🔑 Grab the JWT from headers
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
       return res.status(401).json({ success: false, message: "No token provided" });
     }
 
-    // 🔑 Verify Google/Firebase token
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    // 🔑 Verify your JWT
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    let user = await User.findOne({ email: decodedToken.email });
+    // 🔑 Find user from DB
+    const user = await User.findById(decoded.id);
     if (!user) {
-      user = await User.create({
-        name: decodedToken.name || "Google User",
-        email: decodedToken.email,
-        avatar: decodedToken.picture,
-      });
+      return res.status(401).json({ success: false, message: "User not found" });
     }
 
-    // 🔑 Issue your own JWT
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    req.user = user;
-    req.authToken = token;
+    req.user = user; // attach user to request
     next();
   } catch (err) {
-    console.error("Firebase token verification failed:", err);
+    console.error("JWT verification failed:", err);
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 }

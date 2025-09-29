@@ -43,7 +43,8 @@ userRouter.get('/me', authMiddleware, getCurrentUser);
 userRouter.put('/profile', authMiddleware, updateProfile);
 userRouter.put('/password', authMiddleware, updatePassword);
 // GET /api/user/me
-router.get("/me", async (req, res) => {
+// Extra route (if you want to keep it in addition to controller one)
+userRouter.get("/me", async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ success: false, message: "No token provided" });

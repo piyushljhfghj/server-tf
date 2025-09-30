@@ -77,3 +77,5 @@ export const verifyOtp = async (req, res) => {
     res.status(500).json({ msg: err.message });
   }
 };
+
+

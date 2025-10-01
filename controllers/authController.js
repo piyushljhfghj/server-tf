@@ -1,81 +1,88 @@
-import User from "../models/userModel.js";
-import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
-import { sendOtpEmail } from "../utils/sendEmail.js";
+import User from "../models/userModel.js";
 
-// Generate 6-digit OTP
-const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
-
-// Register
-export const registerUser = async (req, res) => {
+// -------------------- SEND OTP --------------------
+export const sendOtp = async (req, res) => {
+  const { email } = req.body;
   try {
-    const { name, email, password } = req.body;
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ msg: "User already exists" });
-
-    const hashed = await bcrypt.hash(password, 10);
-    const otp = generateOtp();
-
-    const user = await User.create({
-      name,
-      email,
-      password: hashed,
-      otp,
-      otpExpires: Date.now() + 5 * 60 * 1000, // 5 mins
-    });
-
-    await sendOtpEmail(email, otp);
-    res.json({ msg: "OTP sent to email", email });
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
-  }
-};
-
-// Login
-export const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: "User not found" });
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
+    // Generate OTP as string (important for consistency)
+    const otp = (Math.floor(100000 + Math.random() * 900000)).toString();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    const otp = generateOtp();
+    // Save OTP in user document
     user.otp = otp;
-    user.otpExpires = Date.now() + 5 * 60 * 1000;
+    user.otpExpiry = otpExpiry;
     await user.save();
 
-    await sendOtpEmail(email, otp);
-    res.json({ msg: "OTP sent to email", email });
+    // Nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `Taskflow <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Taskflow OTP Verification",
+      text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    // For debugging: log OTP in backend console (remove in production)
+    console.log(`✅ OTP sent to ${email}: ${otp}`);
+
+    res.json({ msg: "OTP sent successfully" });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error("❌ Error in sendOtp:", err);
+    res.status(500).json({ msg: "Failed to send OTP" });
   }
 };
 
-// Verify OTP
+// -------------------- VERIFY OTP --------------------
 export const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
   try {
-    const { email, otp } = req.body;
     const user = await User.findOne({ email });
-
-    if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
-      return res.status(400).json({ msg: "Invalid or expired OTP" });
+    if (!user || !user.otp) {
+      return res.status(400).json({ msg: "No OTP sent" });
     }
 
-    user.isVerified = true;
+    // Check expiry
+    if (new Date() > user.otpExpiry) {
+      user.otp = null;
+      user.otpExpiry = null;
+      await user.save();
+      return res.status(400).json({ msg: "OTP expired" });
+    }
+
+    // Compare OTP as strings
+    if (otp !== user.otp) {
+      return res.status(400).json({ msg: "Invalid OTP" });
+    }
+
+    // OTP correct → generate token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    // Clear OTP after successful verification
     user.otp = null;
-    user.otpExpires = null;
+    user.otpExpiry = null;
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    res.json({ msg: "Verified successfully", token });
+    res.json({ msg: "OTP verified", token });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error("❌ Error in verifyOtp:", err);
+    res.status(500).json({ msg: "OTP verification failed" });
   }
 };
-
-

@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String }, // 🔹 store Firebase UID
   avatar: { type: String },   // 🔹 Google profile picture
   otp: { type: String },
-otpExpires: { type: Date },
+otpExpiry: { type: Date },
 isVerified: { type: Boolean, default: false },
 
 }, { timestamps: true });

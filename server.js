@@ -88,6 +88,8 @@ connectDB();
 app.use("/api/user", userRouter);
 app.use("/api/tasks", taskRouter);
 app.use("/api/auth/google", googleAuthRouter);
+app.use("/api/auth", authRoutes); // must exist and be after express.json()
+
 
 // Test API
 app.get("/", (req, res) => {

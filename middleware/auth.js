@@ -34,30 +34,32 @@
 // }
 
 // backend/middleware/auth.js
-import jwt from "jsonwebtoken";
+import express from "express";
+import admin from "../firebaseAdmin.js";
 import User from "../models/userModel.js";
+import jwt from "jsonwebtoken";
 
-export default async function authMiddleware(req, res, next) {
+const router = express.Router();
+
+router.post("/google", async (req, res) => {
+  const { token } = req.body;
   try {
-    // 🔑 Grab the JWT from headers
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ success: false, message: "No token provided" });
-    }
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { email, name } = decodedToken;
 
-    // 🔑 Verify your JWT
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let user = await User.findOne({ email });
 
-    // 🔑 Find user from DB
-    const user = await User.findById(decoded.id);
     if (!user) {
-      return res.status(401).json({ success: false, message: "User not found" });
+      user = await User.create({ name: name || email.split("@")[0], email, password: "" });
     }
 
-    req.user = user; // attach user to request
-    next();
+    const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+    res.json({ token: jwtToken, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
-    console.error("JWT verification failed:", err);
-    return res.status(401).json({ success: false, message: "Unauthorized" });
+    console.error("Google auth error:", err);
+    res.status(500).json({ msg: "Google authentication failed" });
   }
-}
+});
+
+export default router;

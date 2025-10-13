@@ -1,17 +1,3 @@
-// import mongoose from 'mongoose';
-
-// const taskSchema = new mongoose.Schema({
-//     title: { type: String, required: true },
-//     description: { type: String, default: '' },
-//     priority: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Low' },
-//     dueDate: { type: Date },
-//     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-//     completed: { type: Boolean, default: false },
-//     createdAt: { type: Date, default: Date.now }
-// });
-
-// const Task = mongoose.models.Task || mongoose.model('Task', taskSchema);
-// export default Task;
 
 import mongoose from 'mongoose';
 
@@ -27,3 +13,20 @@ const taskSchema = new mongoose.Schema({
 
 const Task = mongoose.models.Task || mongoose.model('Task', taskSchema);
 export default Task;
+
+
+
+// // backend/models/taskModel.js
+// import mongoose from "mongoose";
+
+// const taskSchema = new mongoose.Schema({
+//   title: { type: String, required: true },
+//   description: { type: String, default: "" },
+//   priority: { type: String, enum: ["Low","Medium","High"], default: "Low" },
+//   completed: { type: Boolean, default: false },
+//   owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+//   dueDate: { type: Date }
+// }, { timestamps: true });
+
+// const Task = mongoose.models.Task || mongoose.model("Task", taskSchema);
+// export default Task;

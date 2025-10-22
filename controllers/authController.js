@@ -222,87 +222,89 @@
 
 
 
+
+// ------------------------------------------------------------------------------------------------
 // backend/controllers/authController.js
 import nodemailer from "nodemailer";
-import User from "../models/userModel.js";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import User from "../models/userModel.js";
+import admin from "../firebaseAdmin.js";
 
+const ADMIN_EMAILS = ["piyush.3035kvsrodelhi@gmail.com"];
 const JWT_SECRET = process.env.JWT_SECRET || "paadkha";
 
-// temporary in-memory OTP store
-const otpStore = new Map();
+// -------------------- Utility: Mail Transporter --------------------
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
-// ✅ Send OTP
+// -------------------- SEND OTP (Signup) --------------------
 export const sendOtp = async (req, res) => {
+  const { name, email, password } = req.body;
   try {
-    const { name, email, password } = req.body;
-    if (!email || !password || !name)
-      return res.status(400).json({ msg: "All fields required" });
+    let user = await User.findOne({ email });
 
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ msg: "User already exists" });
+    if (user && user.isVerified) {
+      return res.status(400).json({ msg: "User already exists. Please login." });
+    }
 
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    otpStore.set(email, { otp, name, password, time: Date.now() });
+    if (!user) {
+      user = new User({ name, email, password: password ? await bcrypt.hash(password, 10) : undefined, isVerified: false });
+    }
 
-    // Send email via Nodemailer
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+    const otp = (Math.floor(100000 + Math.random() * 900000)).toString();
+    user.otp = otp;
+    user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    await user.save();
 
-    const mailOptions = {
-      from: process.env.SMTP_USER,
+    await transporter.sendMail({
+      from: `TaskFlow <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "TaskFlow OTP Verification",
-      text: `Your OTP is ${otp}. It expires in 5 minutes.`,
-    };
+      text: `Hello ${name},\n\nYour OTP is ${otp}. It will expire in 5 minutes.`,
+    });
 
-    await transporter.sendMail(mailOptions);
     res.json({ msg: "OTP sent successfully" });
   } catch (err) {
-    console.error("sendOtp error:", err);
+    console.error("❌ Error in sendOtp:", err);
     res.status(500).json({ msg: "Failed to send OTP" });
   }
 };
 
-// ✅ Verify OTP
+// -------------------- VERIFY OTP (Signup Complete) --------------------
 export const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
   try {
-    const { email, otp } = req.body;
-    const record = otpStore.get(email);
+    const user = await User.findOne({ email });
+    if (!user || !user.otp) return res.status(400).json({ msg: "No OTP requested" });
 
-    if (!record) return res.status(400).json({ msg: "No OTP sent" });
-    if (record.otp.toString() !== otp.toString())
-      return res.status(400).json({ msg: "Invalid OTP" });
+    if (new Date() > user.otpExpiry) {
+      user.otp = null;
+      user.otpExpiry = null;
+      await user.save();
+      return res.status(400).json({ msg: "OTP expired" });
+    }
 
-    // Create user and clear OTP
-    const hashed = await bcrypt.hash(record.password, 10);
-    const user = await User.create({
-      name: record.name,
-      email,
-      password: hashed,
-      isVerified: true,
-    });
+    if (otp !== user.otp) return res.status(400).json({ msg: "Invalid OTP" });
 
-    otpStore.delete(email);
+    user.otp = null;
+    user.otpExpiry = null;
+    user.isVerified = true;
+    await user.save();
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
 
-    res.json({ msg: "Signup successful", token, user });
+    res.json({ msg: "OTP verified successfully", token, user });
   } catch (err) {
-    console.error("verifyOtp error:", err);
-    res.status(500).json({ msg: "Verification failed" });
+    console.error("❌ Error in verifyOtp:", err);
+    res.status(500).json({ msg: "OTP verification failed" });
   }
 };
-
 
 // -------------------- GOOGLE SIGNUP --------------------
 export const googleSignup = async (req, res) => {

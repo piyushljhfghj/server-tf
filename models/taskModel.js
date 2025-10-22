@@ -37,7 +37,8 @@ const taskSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     adminCreated: {
   type: Boolean,
-  default: false
+  default: false,
+   timestamps: true
 }
 
 });

@@ -127,7 +127,8 @@
 
 
 
-
+import { sendOtpEmail } from "../config/nodemailer.js";
+import Otp from "../models/otpModel.js"; 
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -140,6 +141,34 @@ const TOKEN_EXPIRES = "7d";
 // ✅ Updated to include role
 const createToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES });
+
+
+
+export async function sendOtp(req, res) {
+  const { email } = req.body;
+
+  if (!email) return res.status(400).json({ msg: "Email required" });
+
+  try {
+    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+    // Save OTP in DB
+    await Otp.findOneAndUpdate(
+      { email },
+      { otp, createdAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    // Send email
+    await sendOtpEmail(email, otp);
+
+    res.json({ msg: "OTP sent successfully" });
+  } catch (err) {
+    console.error("sendOtp error:", err);
+    res.status(500).json({ msg: "Failed to send OTP" });
+  }
+}
+
 
 // REGISTER
 export async function registerUser(req, res) {

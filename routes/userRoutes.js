@@ -33,6 +33,7 @@
 
 import express from 'express';
 import {
+    sendOtp,
     registerUser,
     loginUser,
     getCurrentUser,
@@ -46,6 +47,8 @@ const userRouter = express.Router();
 // Public
 userRouter.post('/register', registerUser);
 userRouter.post('/login', loginUser);
+userRouter.post("/signup/send-otp", sendOtp);
+
 
 // Protected
 userRouter.get('/me', authMiddleware, getCurrentUser);

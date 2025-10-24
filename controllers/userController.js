@@ -127,12 +127,12 @@
 
 
 
-import { sendOtpEmail } from "../config/nodemailer.js";
 import Otp from "../models/otpModel.js"; 
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import validator from "validator";
+import { sendOtpEmail } from "../utils/sendEmail.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || 'paadkha';
 const TOKEN_EXPIRES = "7d";

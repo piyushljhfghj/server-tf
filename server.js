@@ -138,7 +138,7 @@ connectDB();// In server.js, after connectDB()
 
 
 const createAdmin = async () => {
-  const adminEmail = "piyush.3035kvsrodelhi@gmail.com";
+  const adminEmail = "aeerohit@gmail.com";
   const exists = await User.findOne({ email: adminEmail });
   if (!exists) {
     const hashed = await bcrypt.hash("paadkha", 10);

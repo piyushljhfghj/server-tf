@@ -231,7 +231,7 @@ import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
 import admin from "../firebaseAdmin.js";
 
-const ADMIN_EMAILS = ["piyush.3035kvsrodelhi@gmail.com"];
+const ADMIN_EMAILS = ["aeerohit@gmail.com"];
 const JWT_SECRET = process.env.JWT_SECRET || "paadkha";
 
 // -------------------- Utility: Mail Transporter --------------------

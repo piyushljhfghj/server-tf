@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
 
 export const sendOtpEmail = async (to, otp) => {
   await transporter.sendMail({
-    from: `"TaskFlow" <${process.env.GMAIL_USER}>`,
+    from: `"TaskFlow" <${process.env.EMAIL_USER}>`,
     to,
     subject: "Your TaskFlow OTP Code",
     text: `Your OTP is ${otp}. It expires in 5 minutes.`,

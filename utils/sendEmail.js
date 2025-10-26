@@ -18,28 +18,18 @@
 // };
 
 
+
+
 // backend/utils/sendEmail.js
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-// ✅ Create reusable transporter object
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587, // or 465 if you want SSL
-  secure: false, // true for port 465
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ✅ Function to send OTP email
+// ✅ Function to send OTP email using Resend API
 export const sendOtpEmail = async (to, otp) => {
   try {
-    const mailOptions = {
-      from: `"TaskFlow" <${process.env.EMAIL_USER}>`,
+    const response = await resend.emails.send({
+      from: "TaskFlow <onboarding@resend.dev>", // you can change after domain verification
       to,
       subject: "Your TaskFlow OTP Code",
       html: `
@@ -50,12 +40,12 @@ export const sendOtpEmail = async (to, otp) => {
           <p>This code is valid for 5 minutes.</p>
         </div>
       `,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent to ${to}`);
+    console.log("✅ OTP Email sent:", response);
   } catch (error) {
-    console.error("❌ Error in sendOtp:", error);
+    console.error("❌ Error in sendOtp (Resend):", error);
     throw error;
   }
 };
+

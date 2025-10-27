@@ -106,7 +106,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import User from "./models/userModel.js";
 import bcrypt from "bcryptjs";
 import adminTaskRoutes from "./routes/adminTaskRoutes.js";
-import forgotPasswordRoutes from "./routes/forgotPasswordRoutes.js"; // 🆕 Added
+import ForgotPasswordRoutes from "./routes/ForgotPasswordRoutes.js"; // 🆕 Added
 
 
 
@@ -165,7 +165,7 @@ app.use("/api/auth/google", googleAuthRouter);
 app.use("/api/auth", authRoutes); // must exist and be after express.json()
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", adminTaskRoutes);
-app.use("/api/auth", forgotPasswordRoutes); // 🆕 Added
+app.use("/api/auth", ForgotPasswordRoutes); // 🆕 Added
 
 
 // Test API

@@ -127,139 +127,306 @@
 
 
 
-import Otp from "../models/otpModel.js"; 
+// import Otp from "../models/otpModel.js"; 
+// import User from "../models/userModel.js";
+// import jwt from "jsonwebtoken";
+// import bcrypt from "bcryptjs";
+// import validator from "validator";
+// import { sendOtpEmail } from "../utils/sendEmail.js";
+
+// const JWT_SECRET = process.env.JWT_SECRET || 'paadkha';
+// const TOKEN_EXPIRES = "7d";
+
+
+// // ✅ Updated to include role
+// const createToken = (user) =>
+//   jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES });
+
+
+
+// export async function sendOtp(req, res) {
+//   const { email } = req.body;
+
+//   if (!email) return res.status(400).json({ msg: "Email required" });
+
+//   try {
+//     const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+//     // Save OTP in DB
+//     await Otp.findOneAndUpdate(
+//       { email },
+//       { otp, createdAt: new Date() },
+//       { upsert: true, new: true }
+//     );
+
+//     // Send email
+//     await sendOtpEmail(email, otp);
+
+//     res.json({ msg: "OTP sent successfully" });
+//   } catch (err) {
+//     console.error("sendOtp error:", err);
+//     res.status(500).json({ msg: "Failed to send OTP" });
+//   }
+// }
+
+
+// // REGISTER
+// export async function registerUser(req, res) {
+//   const { name, email, password } = req.body;
+//   if (!name || !email || !password)
+//     return res.status(400).json({ success: false, message: "All fields are required." });
+//   if (!validator.isEmail(email))
+//     return res.status(400).json({ success: false, message: "Invalid email." });
+//   if (password.length < 8)
+//     return res.status(400).json({ success: false, message: "Password must be at least 8 characters." });
+
+//   try {
+//     if (await User.findOne({ email }))
+//       return res.status(409).json({ success: false, message: "User already exists." });
+
+//     const hashed = await bcrypt.hash(password, 10);
+//     const user = await User.create({ name, email, password: hashed });
+
+//     const token = createToken(user);
+//     res.status(201).json({
+//       success: true,
+//       token,
+//       user: { id: user._id, name: user.name, email: user.email, role: user.role },
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: "Server error." });
+//   }
+// }
+// // LOGIN
+
+// export const loginUser = async (req, res) => {
+//   const { email, password } = req.body;
+//   try {
+//     const user = await User.findOne({ email });
+//     if (!user) return res.status(404).json({ msg: "User not found" });
+
+//     if (!user.isVerified) return res.status(401).json({ msg: "User not verified" });
+
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) return res.status(401).json({ msg: "Wrong password" });
+
+//     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+
+//     res.json({ msg: "Login successful", token, user });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// };
+
+// // GET CURRENT USER
+// export async function getCurrentUser(req, res) {
+//   try {
+//     const user = await User.findById(req.user.id).select("name email role");
+//     if (!user) return res.status(404).json({ success: false, message: "User not found." });
+//     res.json({ success: true, user });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: "Server error." });
+//   }
+// }
+
+// // UPDATE PROFILE
+// export async function updateProfile(req, res) {
+//   const { name, email } = req.body;
+//   if (!name || !email || !validator.isEmail(email))
+//     return res.status(400).json({ success: false, message: "Valid name and email required." });
+
+//   try {
+//     const exists = await User.findOne({ email, _id: { $ne: req.user.id } });
+//     if (exists)
+//       return res.status(409).json({ success: false, message: "Email already in use by another account." });
+
+//     const user = await User.findByIdAndUpdate(
+//       req.user.id,
+//       { name, email },
+//       { new: true, runValidators: true, select: "name email role" }
+//     );
+//     res.json({ success: true, user });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: "Server error." });
+//   }
+// }
+
+// // CHANGE PASSWORD
+// export async function updatePassword(req, res) {
+//   const { currentPassword, newPassword } = req.body;
+//   if (!currentPassword || !newPassword || newPassword.length < 8)
+//     return res.status(400).json({ success: false, message: "Passwords invalid or too short." });
+
+//   try {
+//     const user = await User.findById(req.user.id).select("password");
+//     if (!user) return res.status(404).json({ success: false, message: "User not found." });
+
+//     const match = await bcrypt.compare(currentPassword, user.password);
+//     if (!match)
+//       return res.status(401).json({ success: false, message: "Current password incorrect." });
+
+//     user.password = await bcrypt.hash(newPassword, 10);
+//     await user.save();
+//     res.json({ success: true, message: "Password changed." });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: "Server error." });
+//   }
+// }
+
+
+
+// -------------------------------------------------------------------
+
+
+
+// backend/controllers/authController.js
+import Otp from "../models/otpModel.js";
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import validator from "validator";
-import { sendOtpEmail } from "../utils/sendEmail.js";
+import { sendOtpEmail } from "../utils/sendEmail.js"; // ✅ Using Resend
 
-const JWT_SECRET = process.env.JWT_SECRET || 'paadkha';
+const JWT_SECRET = process.env.JWT_SECRET || "paadkha";
 const TOKEN_EXPIRES = "7d";
 
-
-// ✅ Updated to include role
+// ✅ Utility function to create JWT token
 const createToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES });
 
-
-
+// -------------------- SEND OTP --------------------
 export async function sendOtp(req, res) {
   const { email } = req.body;
 
   if (!email) return res.status(400).json({ msg: "Email required" });
+  if (!validator.isEmail(email))
+    return res.status(400).json({ msg: "Invalid email address" });
 
   try {
     const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
 
-    // Save OTP in DB
+    // ✅ Store OTP in the database
     await Otp.findOneAndUpdate(
       { email },
       { otp, createdAt: new Date() },
       { upsert: true, new: true }
     );
 
-    // Send email
+    // ✅ Send OTP using Resend
     await sendOtpEmail(email, otp);
 
     res.json({ msg: "OTP sent successfully" });
   } catch (err) {
-    console.error("sendOtp error:", err);
+    console.error("❌ sendOtp error:", err);
     res.status(500).json({ msg: "Failed to send OTP" });
   }
 }
 
-
-// REGISTER
+// -------------------- REGISTER --------------------
 export async function registerUser(req, res) {
   const { name, email, password } = req.body;
+
   if (!name || !email || !password)
     return res.status(400).json({ success: false, message: "All fields are required." });
+
   if (!validator.isEmail(email))
     return res.status(400).json({ success: false, message: "Invalid email." });
+
   if (password.length < 8)
     return res.status(400).json({ success: false, message: "Password must be at least 8 characters." });
 
   try {
-    if (await User.findOne({ email }))
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
       return res.status(409).json({ success: false, message: "User already exists." });
 
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({ name, email, password: hashedPassword });
 
     const token = createToken(user);
+
     res.status(201).json({
       success: true,
       token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (err) {
-    console.error(err);
+    console.error("❌ registerUser error:", err);
     res.status(500).json({ success: false, message: "Server error." });
   }
 }
-// LOGIN
 
+// -------------------- LOGIN --------------------
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password)
+    return res.status(400).json({ msg: "Email and password required" });
+
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    if (!user.isVerified) return res.status(401).json({ msg: "User not verified" });
-
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ msg: "Wrong password" });
+    if (!isMatch) return res.status(401).json({ msg: "Incorrect password" });
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
-
+    const token = createToken(user);
     res.json({ msg: "Login successful", token, user });
   } catch (err) {
-    console.error(err);
+    console.error("❌ loginUser error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 };
 
-// GET CURRENT USER
+// -------------------- GET CURRENT USER --------------------
 export async function getCurrentUser(req, res) {
   try {
     const user = await User.findById(req.user.id).select("name email role");
     if (!user) return res.status(404).json({ success: false, message: "User not found." });
+
     res.json({ success: true, user });
   } catch (err) {
-    console.error(err);
+    console.error("❌ getCurrentUser error:", err);
     res.status(500).json({ success: false, message: "Server error." });
   }
 }
 
-// UPDATE PROFILE
+// -------------------- UPDATE PROFILE --------------------
 export async function updateProfile(req, res) {
   const { name, email } = req.body;
+
   if (!name || !email || !validator.isEmail(email))
     return res.status(400).json({ success: false, message: "Valid name and email required." });
 
   try {
-    const exists = await User.findOne({ email, _id: { $ne: req.user.id } });
-    if (exists)
-      return res.status(409).json({ success: false, message: "Email already in use by another account." });
+    const existing = await User.findOne({ email, _id: { $ne: req.user.id } });
+    if (existing)
+      return res.status(409).json({ success: false, message: "Email already in use." });
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { name, email },
       { new: true, runValidators: true, select: "name email role" }
     );
+
     res.json({ success: true, user });
   } catch (err) {
-    console.error(err);
+    console.error("❌ updateProfile error:", err);
     res.status(500).json({ success: false, message: "Server error." });
   }
 }
 
-// CHANGE PASSWORD
+// -------------------- CHANGE PASSWORD --------------------
 export async function updatePassword(req, res) {
   const { currentPassword, newPassword } = req.body;
+
   if (!currentPassword || !newPassword || newPassword.length < 8)
-    return res.status(400).json({ success: false, message: "Passwords invalid or too short." });
+    return res.status(400).json({ success: false, message: "Invalid password format." });
 
   try {
     const user = await User.findById(req.user.id).select("password");
@@ -271,9 +438,10 @@ export async function updatePassword(req, res) {
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
-    res.json({ success: true, message: "Password changed." });
+
+    res.json({ success: true, message: "Password updated successfully." });
   } catch (err) {
-    console.error(err);
+    console.error("❌ updatePassword error:", err);
     res.status(500).json({ success: false, message: "Server error." });
   }
 }

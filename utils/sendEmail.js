@@ -18,18 +18,15 @@
 // };
 
 
-
-
-// backend/utils/sendEmail.js
 import { Resend } from "resend";
-
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ✅ Function to send OTP email using Resend API
 export const sendOtpEmail = async (to, otp) => {
   try {
+    console.log("Sending OTP to:", to);
+
     const response = await resend.emails.send({
-      from: "TaskFlow <onboarding@resend.dev>", // you can change after domain verification
+      from: process.env.RESEND_FROM_EMAIL,
       to,
       subject: "Your TaskFlow OTP Code",
       html: `
@@ -48,4 +45,3 @@ export const sendOtpEmail = async (to, otp) => {
     throw error;
   }
 };
-
